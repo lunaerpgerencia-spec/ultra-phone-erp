@@ -53,4 +53,5 @@ next-env.d.ts
 /.agents/
 /.codex/
 /outputs/
+*.tsbuildinfo
 /work/

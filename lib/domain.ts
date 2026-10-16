@@ -1,0 +1,8 @@
+export const money = (cents: number) => (cents / 100).toLocaleString("pt-BR", {style:"currency",currency:"BRL"});
+export function cents(value: string | number) {const n = typeof value === "number" ? value : Number(value.replace(",", ".")); if (!Number.isFinite(n) || n < 0) throw new Error("Informe um valor válido."); return Math.round(n*100);}
+export function splitInstallments(total:number,count:number){if(!Number.isSafeInteger(total)||total<1||!Number.isInteger(count)||count<1||count>36||total<count)throw new Error("Parcelamento inválido.");const base=Math.floor(total/count);return Array.from({length:count},(_,i)=>base+(i<total%count?1:0));}
+export function validIMEI(value:string){if(!/^\d{15}$/.test(value))return false;const sum=[...value].reduce((s,n,i)=>{let d=Number(n)*(i%2===1?2:1);return s+Math.floor(d/10)+d%10},0);return sum%10===0;}
+export function isoToday(){return new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo"}).format(new Date())}
+export function dateLabel(s:string){return new Date(s.length===10?s+"T12:00:00":s).toLocaleDateString("pt-BR",{timeZone:"America/Sao_Paulo"})}
+export function monthDate(first:string,offset:number){const [y,m,d]=first.split("-").map(Number);const end=new Date(Date.UTC(y,m-1+offset+1,0)).getUTCDate();return new Date(Date.UTC(y,m-1+offset,Math.min(d,end))).toISOString().slice(0,10)}
+export function validCPF(value:string){const v=value.replace(/\D/g,"");if(!/^\d{11}$/.test(v)||/^(\d)\1+$/.test(v))return false;for(let size=9;size<=10;size++){const sum=[...v.slice(0,size)].reduce((s,d,i)=>s+Number(d)*(size+1-i),0);const check=(sum*10)%11%10;if(check!==Number(v[size]))return false}return true}
