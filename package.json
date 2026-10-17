@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "test": "node tests/domain.test.mjs && node tests/database.test.mjs && node tests/cash.test.mjs && node tests/service.test.mjs && node tests/pricing.test.mjs",
+    "test": "node tests/domain.test.mjs && node tests/database.test.mjs && node tests/cash.test.mjs && node tests/service.test.mjs && node tests/pricing.test.mjs && node tests/delete-purchase.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
