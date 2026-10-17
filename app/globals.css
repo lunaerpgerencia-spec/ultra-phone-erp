@@ -30,3 +30,5 @@
 .installment-editor-fields{border:0;padding:0;min-width:0}.installment-draft-list{display:grid;gap:12px;margin:16px 0;max-height:38vh;overflow:auto}.installment-draft{display:grid;grid-template-columns:32px 1fr 1fr auto;align-items:end;gap:12px}.installment-draft>strong{align-self:center}@media(max-width:600px){.installment-draft{grid-template-columns:32px 1fr}.installment-draft .field{grid-column:2}.installment-draft>button{grid-column:2}}
 
 .technical-sheet{margin:14px 0}.technical-sheet summary{cursor:pointer;color:var(--primary,#3c9aff);font-weight:600}.technical-sheet dl{display:grid;gap:8px;margin:12px 0}.technical-sheet dl>div{border-bottom:1px solid #64748b33;padding:6px 0}.technical-sheet dt{font-size:12px;opacity:.7}.technical-sheet dd{margin:3px 0;overflow-wrap:anywhere}
+
+.cep-address{grid-column:1/-1;display:grid;gap:10px}.cep-search{display:flex;gap:8px;align-items:center}.cep-search input{min-width:0;flex:1}.cep-search button{white-space:nowrap}.cep-address textarea{min-height:76px;width:100%}
