@@ -26,3 +26,5 @@
 
 .appliance-photo{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}.appliance-photo-view{border:0;background:transparent;cursor:zoom-in;padding:0;width:100%}.appliance-photo-view img{width:100%;height:180px;object-fit:contain;border-radius:12px;background:#111827}.appliance-photo-placeholder{height:145px;display:grid;place-items:center;color:#75839c}.appliance-photo-preview{width:100%;max-height:50vh;object-fit:contain;border-radius:12px}.device-art.device-status{height:auto;min-height:0;padding:0;margin-bottom:12px;background:transparent;justify-content:flex-end}
 .device-art.device-status .badge{position:static}
+
+.installment-editor-fields{border:0;padding:0;min-width:0}.installment-draft-list{display:grid;gap:12px;margin:16px 0;max-height:38vh;overflow:auto}.installment-draft{display:grid;grid-template-columns:32px 1fr 1fr auto;align-items:end;gap:12px}.installment-draft>strong{align-self:center}@media(max-width:600px){.installment-draft{grid-template-columns:32px 1fr}.installment-draft .field{grid-column:2}.installment-draft>button{grid-column:2}}
