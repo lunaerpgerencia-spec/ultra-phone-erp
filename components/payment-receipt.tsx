@@ -1,0 +1,13 @@
+import {type Row,type DataSet} from '@/lib/data';
+import {money,dateLabel} from '@/lib/domain';
+import {canPrintPayment} from '@/lib/payment-receipt';
+export function PaymentReceipt({receipt,data,stores,storeId}:{receipt:Row;data:DataSet;stores:Row[];storeId:string}){
+ if(!canPrintPayment(receipt,data.receipts,data.sales))return null;
+ const sale=data.sales.find(s=>s.id===receipt.sale_id)!;
+ const customer=sale.customer_snapshot||data.customers.find(c=>c.id===sale.customer_id)||{};
+ const store=stores.find(s=>s.id===(sale.store_id||storeId));
+ const parcel=data.installments.find(p=>p.id===receipt.installment_id);
+ const purpose=parcel?'pagamento da parcela nº '+parcel.number:data.installments.some(p=>p.sale_id===sale.id)?'pagamento da entrada':'pagamento da operação';
+ const items=data.sale_items.filter(i=>i.sale_id===sale.id);
+ return <div className="print-document payment-receipt"><div className="print-header"><img src="/ultra-logo.png" alt="ULTRA PHONE"/><div><h1>RECIBO DE PAGAMENTO</h1><p>Recebimento nº {receipt.id}</p></div></div><p><strong>Recebedor:</strong> {store?.name||'ULTRA PHONE'}</p><p><strong>CNPJ/CPF do recebedor:</strong> ______________________________</p><p><strong>Endereço do recebedor:</strong> ____________________________________________________</p><p><strong>Pagador:</strong> {customer.name||'________________________________'}</p>{customer.document&&<p><strong>CPF:</strong> {customer.document}</p>}<h2>Valor recebido: {money(Number(receipt.amount_cents))}</h2><p>Recebemos do pagador identificado acima o valor de <strong>{money(Number(receipt.amount_cents))}</strong>, referente a {purpose} da operação nº {sale.number}.</p><p><strong>Data do pagamento:</strong> {dateLabel(receipt.created_at)} · {new Date(receipt.created_at).toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'})}</p><p><strong>Forma de pagamento:</strong> {receipt.method}</p>{parcel&&<p><strong>Vencimento da parcela:</strong> {dateLabel(parcel.due_date)}</p>}<table><thead><tr><th>Aparelho vinculado</th><th>IMEI</th></tr></thead><tbody>{items.map(i=><tr key={i.id}><td>{i.label}</td><td>{i.imei}</td></tr>)}</tbody></table><p>Este recibo comprova somente o recebimento acima identificado. Não declara quitação de outros valores da operação.</p><p><strong>Local e data de emissão:</strong> ______________________________, {dateLabel(new Date().toISOString())}</p><div className="signature-line">Assinatura do recebedor / responsável da loja</div><small>Recibo emitido com base no pagamento registrado no sistema. Não substitui documento fiscal.</small></div>;
+}

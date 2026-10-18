@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {canPrintPayment} from '../lib/payment-receipt.ts';
+const sale={id:'s',status:'Ativa'},r={id:'r',sale_id:'s',amount_cents:50000,method:'PIX'};
+assert.equal(canPrintPayment(r,[r],[sale]),true);
+assert.equal(canPrintPayment({...r,amount_cents:0},[r],[sale]),false);
+assert.equal(canPrintPayment({...r,amount_cents:-50000,method:'Estorno'},[r],[sale]),false);
+assert.equal(canPrintPayment(r,[r,{reversal_of:'r'}],[sale]),false);
+assert.equal(canPrintPayment(r,[r],[{...sale,status:'Cancelada'}]),false);
+assert.equal(canPrintPayment(r,[r],[]),false);
+console.log('PASS recibo: somente recebimento positivo de operação ativa, sem estorno; não usa parcelas em aberto como pagamento.');

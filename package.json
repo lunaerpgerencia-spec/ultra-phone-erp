@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "test": "node tests/domain.test.mjs && node tests/database.test.mjs && node tests/cash.test.mjs && node tests/service.test.mjs && node tests/pricing.test.mjs && node tests/delete-purchase.test.mjs && node tests/device-photos.test.mjs && node tests/edit-installments.test.mjs && node tests/device-specs.test.mjs && node --experimental-strip-types tests/cep.test.mjs && node --experimental-strip-types tests/installment-period.test.mjs && node --experimental-strip-types tests/rental-contract.test.mjs",
+    "test": "node tests/domain.test.mjs && node tests/database.test.mjs && node tests/cash.test.mjs && node tests/service.test.mjs && node tests/pricing.test.mjs && node tests/delete-purchase.test.mjs && node tests/device-photos.test.mjs && node tests/edit-installments.test.mjs && node tests/device-specs.test.mjs && node --experimental-strip-types tests/cep.test.mjs && node --experimental-strip-types tests/installment-period.test.mjs && node --experimental-strip-types tests/rental-contract.test.mjs && node --experimental-strip-types tests/payment-receipt.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
