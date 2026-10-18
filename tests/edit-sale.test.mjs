@@ -7,6 +7,7 @@ await db.exec(`create role anon;create role authenticated;create schema auth;cre
 await db.exec(await readFile(new URL('../database/schema.sql',import.meta.url),'utf8'));
 await db.exec(`alter table customers add column rg text default '';alter table sales add column payment_method text,add column payment_count int,add column interest_percent numeric default 0,add column interest_cents bigint default 0,add column entry_method text,add column customer_snapshot jsonb,add column installment_period text default 'Mensal';`);
 await db.exec(await readFile(new URL('../database/additions/edit-sale.sql',import.meta.url),'utf8'));
+await db.exec(await readFile(new URL('../database/additions/trade-in.sql',import.meta.url),'utf8'));
 const q=(s,p=[])=>db.query(s,p),a=crypto.randomUUID(),b=crypto.randomUUID();
 await q('insert into auth.users values($1),($2)',[a,b]);
 await db.exec(`set role authenticated;set request.jwt.claim.sub='${a}'`);
