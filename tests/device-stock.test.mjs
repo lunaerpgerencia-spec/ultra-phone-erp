@@ -1,0 +1,8 @@
+import assert from 'node:assert/strict';
+import {groupDeviceStock,deviceSection} from '../lib/device-stock.ts';
+const a={id:'a',brand:'Apple',model:'IPHONE 14 PRO MAX',imei:'490154203237518',storage:'128 GB',color:'Preto',status:'Disponível',price_cents:200000,specs:{ram:'6 GB'}},b={...a,id:'b',model:'iPhone 14 Pro Max',imei:'356938035643809',storage:'256 GB',color:'Azul',status:'Vendido'},c={...a,id:'c',model:'14 Pro Max',imei:'352099001761481',storage:'256 GB',color:'Branco'},pro={...a,id:'pro',model:'iPhone 14 Pro'},other={...a,id:'hotwav',model:'HOTWAV A18',brand:'Apple'};
+const snapshot=JSON.stringify([a,b,c,pro,other]);const groups=groupDeviceStock([a,b,c,pro,other]);
+assert.equal(groups.length,3);assert.equal(groups[0].section,'iPhone');assert.equal(groups.find(g=>g.units.some(d=>d.id==='a')).units.length,3);assert.equal(groups.flatMap(g=>g.units).length,5);assert.equal(new Set(groups.flatMap(g=>g.units.map(d=>d.id))).size,5);
+assert.equal(deviceSection(other),'HOTWAV');assert.equal(deviceSection({...a,brand:'Samsung',model:'Galaxy A15'}),'Samsung');assert.equal(deviceSection({...a,model:'Tablet Pad17 Ultra Max'}),'Tablets');assert.equal(deviceSection({...a,specs:{stock_section:'Ofertas'}}),'Ofertas');
+assert.deepEqual(groupDeviceStock([a,b,c],b.imei).flatMap(g=>g.units.map(d=>d.id)),['b']);assert.equal(groupDeviceStock([a,b,c],'6 GB').flatMap(g=>g.units).length,3);assert.equal(groupDeviceStock([a,b,c],'Azul')[0].units[0].id,'b');assert.equal(groupDeviceStock([a,b,c],'Inexistente').length,0);assert.equal(JSON.stringify([a,b,c,pro,other]),snapshot);
+console.log('PASS estoque: seções automáticas ou escolhidas, mesmo modelo com variações, Pro e Pro Max separados, todos os IMEIs preservados, busca por unidade e dados originais intactos.');
