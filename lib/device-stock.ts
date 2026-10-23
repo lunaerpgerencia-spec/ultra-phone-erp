@@ -21,6 +21,17 @@ export function stockModelName(d:Row){
  return !['iPhone','Outros','Tablets'].includes(deviceSection(d))&&!key(model).startsWith(key(deviceSection(d)))?deviceSection(d)+' '+model:model;
 }
 export type StockGroup={id:string;section:string;model:string;units:Row[]};
+export type CustomerProduct={id:string;unitIds:string[];section:string;model:string;storage:string;color:string;condition:string;quantity:number;price_cents:number;credit_price_cents:number;book_price_cents:number;warranty_days:number};
+export function customerProducts(devices:Row[]){
+ const result=new Map<string,CustomerProduct>();
+ for(const d of devices.filter(d=>d.status==='Disponível')){
+  const section=deviceSection(d),model=stockModelName(d),price=Number(d.price_cents),credit=Number(d.credit_price_cents??d.price_cents),book=Number(d.book_price_cents??d.price_cents);
+  const id=JSON.stringify([section,key(model),clean(d.storage).toLowerCase(),clean(d.color).toLowerCase(),d.condition,price,credit,book,Number(d.warranty_days||0)]);
+  const existing=result.get(id);if(existing){existing.quantity++;existing.unitIds.push(d.id);continue;}
+  result.set(id,{id:d.id,unitIds:[d.id],section,model,storage:String(d.storage||''),color:String(d.color||''),condition:String(d.condition||''),quantity:1,price_cents:price,credit_price_cents:credit,book_price_cents:book,warranty_days:Number(d.warranty_days||0)});
+ }
+ return [...result.values()].sort((a,b)=>a.section.localeCompare(b.section,'pt-BR')||a.model.localeCompare(b.model,'pt-BR',{numeric:true})||a.storage.localeCompare(b.storage));
+}
 export function groupDeviceStock(devices:Row[],query=''){
  const groups=new Map<string,StockGroup>(),q=clean(query).toLowerCase();
  for(const d of devices){
