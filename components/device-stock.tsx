@@ -1,6 +1,6 @@
 'use client';
-import {useState} from 'react';
-import {Plus,ChevronDown,Search,Package,CheckCircle2,Layers3,SlidersHorizontal} from 'lucide-react';
+import {Fragment,useState} from 'react';
+import {Plus,Search,Package,Pencil,ChevronDown} from 'lucide-react';
 import {DevicePhoto} from '@/components/device-photo';
 import {groupDeviceStock} from '@/lib/device-stock';
 import {money} from '@/lib/domain';
@@ -8,12 +8,6 @@ import type {Row} from '@/lib/data';
 import './device-stock.css';
 
 type Props={devices:Row[];query:string;editable:boolean;techFields:readonly (readonly [string,string])[];onEdit:(d:Row)=>void;onAdd:(d:Row)=>void;onLookup:(d:Row)=>void};
-function priceRange(units:Row[],field:string){
- const values=units.map(d=>Number(d[field]??d.price_cents));
- const min=Math.min(...values),max=Math.max(...values);
- return min===max?money(min):money(min)+' a '+money(max);
-}
-
 export function DeviceStock({devices,query,editable,techFields,onEdit,onAdd,onLookup}:Props){
  const [section,setSection]=useState('Todas');
  const [search,setSearch]=useState('');
@@ -25,48 +19,19 @@ export function DeviceStock({devices,query,editable,techFields,onEdit,onAdd,onLo
  const searched=groupDeviceStock(devices,query).flatMap(g=>g.units);
  const filtered=searched.filter(d=>status==='Todas'||String(d.status||'Não informado')===status);
  const groups=groupDeviceStock(filtered,search).filter(g=>section==='Todas'||g.section===section);
- const visibleUnits=groups.flatMap(g=>g.units);
- const available=devices.filter(d=>d.status==='Disponível').length;
-
- return <div className="stock-catalog stock-redesign">
-  <div className="stock-overview" aria-label="Resumo dos aparelhos cadastrados">
-   <div><span className="stock-stat-icon"><Package size={21}/></span><span><small>Unidades cadastradas</small><strong>{devices.length}</strong></span></div>
-   <div><span className="stock-stat-icon available"><CheckCircle2 size={21}/></span><span><small>Disponíveis para venda</small><strong>{available}</strong></span></div>
-   <div><span className="stock-stat-icon models"><Layers3 size={21}/></span><span><small>Modelos no cadastro</small><strong>{all.length}</strong></span></div>
-  </div>
-  <div className="stock-controls">
-   <label className="stock-search"><Search size={18}/><span className="stock-sr-only">Buscar no estoque</span><input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar modelo, cor, memória ou IMEI"/></label>
-   <label className="stock-status"><SlidersHorizontal size={16}/><span>Situação</span><select value={status} onChange={e=>setStatus(e.target.value)}><option value="Todas">Todas as situações</option>{statuses.map(s=><option key={s} value={s}>{s}</option>)}</select></label>
-  </div>
-  <div className="stock-section-tabs" aria-label="Seções do estoque">
-   {['Todas',...sections].map(s=><button type="button" key={s} aria-pressed={section===s} onClick={()=>setSection(s)}>{s}<span>{s==='Todas'?all.length:all.filter(g=>g.section===s).length}</span></button>)}
-  </div>
-  <p className="stock-results" role="status">Exibindo {groups.length} {groups.length===1?'modelo':'modelos'} · {visibleUnits.length} {visibleUnits.length===1?'unidade':'unidades'}</p>
-  {!groups.length?<div className="empty"><Package size={30}/><strong>Nenhum aparelho encontrado.</strong><p>Experimente outro modelo, IMEI ou situação.</p><button type="button" className="btn secondary" onClick={()=>{setSearch('');setSection('Todas');setStatus('Todas')}}>Limpar filtros do estoque</button>{query&&<small>Uma busca também está aplicada no topo da página.</small>}</div>:
-   Array.from(new Set(groups.map(g=>g.section))).map(s=><section key={s} className="stock-section">
-    <div className="stock-section-heading"><h3>{s}</h3><span>{groups.filter(g=>g.section===s).reduce((n,g)=>n+g.units.length,0)} unidades nesta seção</span></div>
-    <div className="stock-product-grid">{groups.filter(g=>g.section===s).map(g=>{
-     const availableUnits=g.units.filter(d=>d.status==='Disponível');
-     const first=availableUnits[0]||g.units[0];
-     const pricingUnits=availableUnits.length?availableUnits:g.units;
-     const variants=Array.from(new Set(g.units.map(d=>[d.storage,d.color].filter(Boolean).join(' · ')).filter(Boolean)));
-     const isOpen=expanded===g.id;
-     return <article className={'stock-product'+(isOpen?' expanded':'')} key={g.id}>
-      <div className="stock-product-photo"><DevicePhoto key={first.id} device={first} editable={false}/><span className={'badge '+(availableUnits.length?'green':'muted')}>{availableUnits.length?availableUnits.length+' disponíveis':'Sem unidades disponíveis'}</span></div>
-      <div className="stock-product-body"><small className="stock-product-brand">{s}</small><h3>{g.model}</h3><p className="stock-product-variants" title={variants.join(' / ')}>{variants.join(' / ')||'Variações por unidade'}</p>
-       <div className="stock-product-prices"><span>À vista<strong>{priceRange(pricingUnits,'price_cents')}</strong></span><div><span>Cartão<strong>{priceRange(pricingUnits,'credit_price_cents')}</strong></span><span>Carnê<strong>{priceRange(pricingUnits,'book_price_cents')}</strong></span></div></div>
-       <div className="stock-product-actions"><button type="button" className="btn primary" aria-expanded={isOpen} onClick={()=>setExpanded(isOpen?null:g.id)}>{isOpen?'Fechar unidades':'Ver '+g.units.length+(g.units.length===1?' unidade':' unidades')}<ChevronDown size={16} className={isOpen?'stock-chevron-open':''}/></button>{editable&&<button type="button" className="btn secondary" onClick={()=>onAdd(first)} aria-label={'Adicionar unidade de '+g.model}><Plus size={16}/>Adicionar</button>}</div>
-      </div>
-      {isOpen&&<div className="stock-units stock-expanded-units">{g.units.map(d=><section className="stock-unit" key={d.id}>
-       <div className="stock-unit-title"><strong>{[d.storage,d.color,d.condition].filter(Boolean).join(' · ')||'Unidade'}</strong><span className={'badge '+(d.status==='Disponível'?'green':'muted')}>{d.status}</span></div>
-       <code>IMEI {d.imei}</code>{d.imei2&&<code>IMEI 2 {d.imei2}</code>}{d.barcode&&<code>Código de barras: {d.barcode}</code>}
-       <DevicePhoto device={d} editable={editable}/>
-       <div className="device-facts"><span>Custo total<strong>{money(Number(d.purchase_cents)+Number(d.repair_cents))}</strong></span><span>À vista<strong>{money(d.price_cents)}</strong></span><span>Cartão<strong>{money(d.credit_price_cents??d.price_cents)}</strong></span><span>Carnê<strong>{money(d.book_price_cents??d.price_cents)}</strong></span></div>
-       <details className="technical-sheet"><summary>Ver ficha técnica</summary><dl>{[['Armazenamento',d.storage],...techFields.map(([key,label])=>[label,d.specs?.[key]])].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value||'Não informado'}</dd></div>)}</dl></details>
-       {editable&&<button type="button" className="btn secondary" onClick={()=>onEdit(d)}>Editar esta unidade / ficha técnica</button>}<button type="button" className="text-link" onClick={()=>onLookup(d)}>Ver histórico deste IMEI</button>
-      </section>)}</div>}
-     </article>;
-    })}</div>
+ const count=groups.reduce((total,g)=>total+g.units.length,0);
+ return <div className="stock-list-layout">
+  <div className="stock-list-summary"><span><strong>{devices.length}</strong> cadastrados</span><span><strong>{devices.filter(d=>d.status==='Disponível').length}</strong> disponíveis</span><span><strong>{all.length}</strong> modelos</span></div>
+  <div className="stock-list-controls"><label className="stock-list-search"><Search size={17} aria-hidden="true"/><span className="stock-list-sr">Buscar no estoque</span><input type="search" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar modelo, cor, memória ou IMEI"/></label><label>Situação <select value={status} onChange={e=>setStatus(e.target.value)}><option value="Todas">Todas as situações</option>{statuses.map(s=><option key={s} value={s}>{s}</option>)}</select></label></div>
+  <div className="stock-list-sections" aria-label="Seções do estoque">{['Todas',...sections].map(s=><button type="button" key={s} aria-pressed={section===s} onClick={()=>setSection(s)}>{s}</button>)}</div>
+  <p className="stock-list-result" role="status">{count} {count===1?'aparelho encontrado':'aparelhos encontrados'} · uma linha por unidade</p>
+  {!groups.length?<div className="empty"><Package size={28}/><strong>Nenhum aparelho encontrado.</strong><button type="button" className="btn secondary" onClick={()=>{setSearch('');setSection('Todas');setStatus('Todas')}}>Limpar filtros do estoque</button>{query&&<small>Uma busca também está aplicada no topo da página.</small>}</div>:
+   Array.from(new Set(groups.map(g=>g.section))).map(s=><section className="stock-list-section" key={s}><h3>{s} <small>{groups.filter(g=>g.section===s).reduce((n,g)=>n+g.units.length,0)} unidades</small></h3>
+    <div className="stock-list-scroll" role="region" aria-label={'Listagem de '+s} tabIndex={0}><table className="stock-list-table"><caption className="stock-list-sr">Aparelhos de {s}, identificação, situação e preços por unidade</caption><thead><tr><th scope="col">Aparelho</th><th scope="col">Memória</th><th scope="col">Cor</th><th scope="col">IMEI</th><th scope="col">Situação</th><th scope="col">À vista</th><th scope="col">Cartão</th><th scope="col">Carnê</th><th scope="col">Ações</th></tr></thead><tbody>{groups.filter(g=>g.section===s).flatMap(g=>g.units.map(d=>{
+     const isOpen=expanded===d.id;
+     return <Fragment key={d.id}><tr className={isOpen?'stock-list-active':''}><th scope="row"><strong>{g.model}</strong><small>{d.condition||'Estado não informado'}</small></th><td>{d.storage||'—'}</td><td>{d.color||'—'}</td><td><code>{d.imei||'Não informado'}</code></td><td><span className={'badge '+(d.status==='Disponível'?'green':'muted')}>{d.status||'Não informado'}</span></td><td className="stock-list-price">{money(d.price_cents)}</td><td className="stock-list-price">{money(d.credit_price_cents??d.price_cents)}</td><td className="stock-list-price">{money(d.book_price_cents??d.price_cents)}</td><td><div className="stock-list-actions">{editable&&<button type="button" className="btn secondary" onClick={()=>onEdit(d)} aria-label={'Editar '+g.model+', IMEI '+d.imei}><Pencil size={13}/>Editar</button>}<button type="button" className="btn secondary" aria-expanded={isOpen} aria-controls={'stock-unit-'+d.id} onClick={()=>setExpanded(isOpen?null:d.id)}>Detalhes<ChevronDown size={13}/></button>{editable&&<button type="button" className="btn secondary" onClick={()=>onAdd(d)} aria-label={'Adicionar unidade de '+g.model}><Plus size={13}/>Unidade</button>}</div></td></tr>
+     <tr id={'stock-unit-'+d.id} hidden={!isOpen} className="stock-list-detail-row"><td colSpan={9}>{isOpen&&<div className="stock-list-detail"><div><h4>{g.model} · {d.storage} · {d.color}</h4><p>IMEI: {d.imei}</p>{d.imei2&&<p>IMEI 2: {d.imei2}</p>}{d.barcode&&<p>Código de barras: {d.barcode}</p>}<p>Custo total: <strong>{money(Number(d.purchase_cents||0)+Number(d.repair_cents||0))}</strong></p><details className="technical-sheet"><summary>Ficha técnica completa</summary><dl>{[['Armazenamento',d.storage],...techFields.map(([key,label])=>[label,d.specs?.[key]])].map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value||'Não informado'}</dd></div>)}</dl></details><button type="button" className="text-link" onClick={()=>onLookup(d)}>Ver histórico deste IMEI</button></div><DevicePhoto device={d} editable={editable}/></div>}</td></tr></Fragment>;
+    }))}</tbody></table></div>
    </section>)}
  </div>;
 }
