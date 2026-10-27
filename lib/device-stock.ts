@@ -1,10 +1,13 @@
 import type {Row} from './data';
-export const stockSections=['iPhone','Samsung','Motorola','Xiaomi','HOTWAV','Tablets','Outros'];
+export const nonImeiSections=['Relógios','Acessórios','Moto elétrica','Produtos sem IMEI'];
+export const stockSections=['iPhone','Samsung','Motorola','Xiaomi','HOTWAV','Tablets',...nonImeiSections,'Outros'];
 const clean=(v:unknown)=>String(v||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ');
 const key=(v:unknown)=>clean(v).toLowerCase().replace(/[^a-z0-9]/g,'');
+export const nonImeiSection=(value:unknown)=>nonImeiSections.find(s=>key(s)===key(value));
 export function deviceSection(d:Row){
  const explicit=String(d.specs?.stock_section||'').trim();
  if(explicit){return stockSections.find(s=>key(s)===key(explicit))||explicit;}
+ if(nonImeiSection(d.product_type))return nonImeiSection(d.product_type)!;
  const model=clean(d.model).toLowerCase(),brand=clean(d.brand).toLowerCase();
  if(/ipad|tablet|\bpad\s*\d/.test(model))return 'Tablets';
  if(/hotwav/.test(model+' '+brand))return 'HOTWAV';
@@ -18,7 +21,7 @@ export function deviceSection(d:Row){
 export function stockModelName(d:Row){
  let model=String(d.model||'Modelo sem nome').trim().replace(/^apple\s+/i,'');
  if(deviceSection(d)==='iPhone')model=model.replace(/^i\s*phone\s*/i,'iPhone ').replace(/^(\d)/,'iPhone $1');
- return !['iPhone','Outros','Tablets'].includes(deviceSection(d))&&!key(model).startsWith(key(deviceSection(d)))?deviceSection(d)+' '+model:model;
+ return !['iPhone','Outros','Tablets',...nonImeiSections].includes(deviceSection(d))&&!key(model).startsWith(key(deviceSection(d)))?deviceSection(d)+' '+model:model;
 }
 export type StockGroup={id:string;section:string;model:string;units:Row[]};
 export type CustomerProduct={id:string;unitIds:string[];section:string;model:string;storage:string;color:string;condition:string;quantity:number;price_cents:number;credit_price_cents:number;book_price_cents:number;warranty_days:number};
