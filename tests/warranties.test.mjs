@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {warrantyRows,warrantyStatus} from '../lib/warranties.ts';
+import {warrantyRows,supplierWarrantyRows,warrantyStatus} from '../lib/warranties.ts';
 const data={sales:[{id:'s',number:1,store_id:'one',status:'Ativa',customer_id:'c',created_at:'2026-11-02T01:00:00Z',customer_snapshot:{name:'Nome antigo'}},{id:'cancel',store_id:'one',status:'Cancelada',customer_id:'c',created_at:'2026-11-01T12:00:00Z'}],customers:[{id:'c',name:'Cliente atual',phone:'21999999999'}],devices:[{id:'d',model:'Telefone atual',warranty_days:365,serial:'SERIE'}],sale_items:[{id:'i',sale_id:'s',store_id:'one',device_id:'d',label:'Modelo vendido',imei:'490154203237518',warranty_snapshot:true,warranty_days:90},{id:'legacy',sale_id:'s',device_id:'d',label:'Antigo',warranty_snapshot:false,warranty_days:90},{id:'zero',sale_id:'s',device_id:'d',warranty_snapshot:true,warranty_days:0},{id:'cancelled',sale_id:'cancel',warranty_snapshot:true,warranty_days:90},{id:'cross',sale_id:'s',store_id:'two',warranty_snapshot:true,warranty_days:90}]};
 const before=JSON.stringify(data),rows=warrantyRows(data,'2026-11-02');
 assert.equal(rows.length,3);let sold=rows.find(r=>r.id==='i');
@@ -13,4 +13,12 @@ assert.equal(warrantyRows(data,'2027-01-31').find(r=>r.id==='i').status,'expired
 const changed=structuredClone(data);changed.devices[0].warranty_days=5;assert.equal(warrantyRows(changed,'2026-11-02').find(r=>r.id==='i').endDate,'2027-01-30');
 changed.sale_items[0].warranty_days=null;assert.equal(warrantyRows(changed,'2026-11-02').find(r=>r.id==='i').status,'missing');
 assert.equal(JSON.stringify(data),before);
+const separate=structuredClone(data);separate.devices[0].store_id='one';
+separate.warranty_terms=[{kind:'Fornecedor',store_id:'one',device_id:'d',provider:'Fornecedor A',start_date:'2026-10-20',days:30,notes:'Nota fiscal'},{kind:'Loja',store_id:'one',device_id:'d',sale_item_id:'i',provider:'Ultrafone',start_date:'2026-11-02',days:120,notes:'Prazo da loja'}];
+const supplier=supplierWarrantyRows(separate,'2026-11-02')[0],shop=warrantyRows(separate,'2026-11-02').find(r=>r.id==='i');
+assert.equal(supplier.days,30);assert.equal(supplier.endDate,'2026-11-19');assert.equal(supplier.customerName,'Fornecedor A');
+assert.equal(shop.days,120);assert.equal(shop.endDate,'2027-03-02');assert.equal(shop.notes,'Prazo da loja');assert.equal(shop.source,'manual');
+assert.equal(warrantyRows(separate,'2026-11-01').find(r=>r.id==='i').status,'scheduled');
+assert.equal(separate.sale_items[0].warranty_days,90,'Manual post-sale terms do not rewrite the original sale snapshot');
+separate.warranty_terms[1].sale_item_id=null;assert.equal(warrantyRows(separate,'2026-11-02').find(r=>r.id==='i').days,90,'An unsold-product preset never changes an old sale');
 console.log('PASS garantias: prazo histórico preservado, datas brasileiras, término inclusivo, últimos sete dias, vencida, prazo ausente/zero, venda cancelada, isolamento e nenhuma alteração nos registros.');
