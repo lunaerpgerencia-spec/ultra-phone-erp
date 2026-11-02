@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {warrantyRows,warrantyStatus} from '../lib/warranties.ts';
+const data={sales:[{id:'s',number:1,store_id:'one',status:'Ativa',customer_id:'c',created_at:'2026-11-02T01:00:00Z',customer_snapshot:{name:'Nome antigo'}},{id:'cancel',store_id:'one',status:'Cancelada',customer_id:'c',created_at:'2026-11-01T12:00:00Z'}],customers:[{id:'c',name:'Cliente atual',phone:'21999999999'}],devices:[{id:'d',model:'Telefone atual',warranty_days:365,serial:'SERIE'}],sale_items:[{id:'i',sale_id:'s',store_id:'one',device_id:'d',label:'Modelo vendido',imei:'490154203237518',warranty_snapshot:true,warranty_days:90},{id:'legacy',sale_id:'s',device_id:'d',label:'Antigo',warranty_snapshot:false,warranty_days:90},{id:'zero',sale_id:'s',device_id:'d',warranty_snapshot:true,warranty_days:0},{id:'cancelled',sale_id:'cancel',warranty_snapshot:true,warranty_days:90},{id:'cross',sale_id:'s',store_id:'two',warranty_snapshot:true,warranty_days:90}]};
+const before=JSON.stringify(data),rows=warrantyRows(data,'2026-11-02');
+assert.equal(rows.length,3);let sold=rows.find(r=>r.id==='i');
+assert.equal(sold.customerName,'Cliente atual');assert.equal(sold.product,'Modelo vendido');assert.equal(sold.days,90,'Warranty is the sold snapshot, not the current 365-day stock setting');
+assert.equal(sold.saleDate,'2026-11-01','Date follows São Paulo, not the UTC date');assert.equal(sold.endDate,'2027-01-30');assert.equal(sold.daysLeft,89);assert.equal(sold.status,'active');
+assert.equal(rows.find(r=>r.id==='legacy').status,'missing');assert.equal(rows.find(r=>r.id==='legacy').days,null,'Do not invent historical coverage from stock');
+assert.equal(rows.find(r=>r.id==='zero').status,'no-extra');assert.equal(warrantyStatus(rows.find(r=>r.id==='zero')),'Sem prazo contratual adicional');
+assert.equal(warrantyRows(data,'2027-01-23').find(r=>r.id==='i').status,'ending');
+sold=warrantyRows(data,'2027-01-30').find(r=>r.id==='i');assert.equal(sold.daysLeft,0);assert.equal(warrantyStatus(sold),'Prazo termina hoje');
+assert.equal(warrantyRows(data,'2027-01-31').find(r=>r.id==='i').status,'expired');
+const changed=structuredClone(data);changed.devices[0].warranty_days=5;assert.equal(warrantyRows(changed,'2026-11-02').find(r=>r.id==='i').endDate,'2027-01-30');
+changed.sale_items[0].warranty_days=null;assert.equal(warrantyRows(changed,'2026-11-02').find(r=>r.id==='i').status,'missing');
+assert.equal(JSON.stringify(data),before);
+console.log('PASS garantias: prazo histórico preservado, datas brasileiras, término inclusivo, últimos sete dias, vencida, prazo ausente/zero, venda cancelada, isolamento e nenhuma alteração nos registros.');
