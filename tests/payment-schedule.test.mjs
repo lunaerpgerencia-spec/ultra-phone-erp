@@ -20,7 +20,7 @@ let partialPlan=paymentSchedule(partial,sale,'2026-11-03');assert.equal(partialP
 partial.receipts.push({id:'reverse',reversal_of:'part',sale_id:'sale',installment_id:'p0',amount_cents:-10000});assert.equal(paymentSchedule(partial,sale,'2026-11-03').rows[1].status,'late');
 assert.equal(paymentSchedule(data,{...sale,status:'Cancelada'},'2026-11-02'),null);
 const text=paymentScheduleText(plan,'Ultrafone');assert.match(text,/✅ 02\/11\/2026.*PAGO/);assert.match(text,/12\.000,00/);assert.match(text,/23 pagamentos/);assert.doesNotMatch(text,/CPF|IMEI/);
-assert.match(paymentScheduleText(partialPlan,'Ultrafone'),/PARCIAL.*recebido.*100,00.*falta.*400,00/);
+assert.match(paymentScheduleText(partialPlan,'Ultrafone'),/PARCIAL.*quitado.*100,00.*falta.*400,00/);
 const corrected=structuredClone(data);corrected.receipts.push({id:'reversed-entry',sale_id:'sale',reversal_of:'entry',installment_id:null,amount_cents:-50000,created_at:'2026-11-02T15:00:00Z'},{id:'new-entry',sale_id:'sale',installment_id:null,amount_cents:50000,created_at:'2026-11-02T02:00:00Z'});
 const correctedPlan=paymentSchedule(corrected,sale,'2026-11-02');assert.equal(correctedPlan.rows.filter(r=>r.kind==='entry').length,1);assert.equal(correctedPlan.rows[0].date,'2026-11-01','Receipt date uses Brazil, not the UTC day');assert.equal(correctedPlan.received,50000);
 const withTrade=paymentSchedule(data,{...sale,trade_value_cents:20000},'2026-11-02');assert.equal(withTrade.trade,20000);assert.equal(withTrade.paymentCount,23);assert.equal(withTrade.balance,1130000);
@@ -30,5 +30,18 @@ const drawn=[],fills=[];
 globalThis.document={createElement:()=>({width:0,height:0,getContext:()=>({fillStyle:'',font:'',fillRect(){fills.push(this.fillStyle)},fillText(text){drawn.push(text)},measureText:text=>({width:text.length*12})}),toBlob:callback=>callback(new Blob(['test'],{type:'image/png'}))})};
 const images=await paymentScheduleImages(plan,'Ultrafone');assert.equal(images.length,1);assert.equal(images[0].type,'image/png');assert.ok(drawn.includes('PAGO'));assert.ok(fills.includes('#dcfce7'));assert.ok(drawn.includes('R$ 1.000,00'));assert.ok(drawn.includes('29/03/2027'));
 const extra={...plan,rows:[...plan.rows,...plan.rows.map((r,i)=>({...r,id:'extra-'+i}))]};assert.equal((await paymentScheduleImages(extra,'Ultrafone')).length,2);
-delete globalThis.document;
 console.log('PASS cronograma: exemplo de 23 pagamentos e R$12.000; entrada sem duplicação; verde só após quitação; parcial, estorno e cancelamento; datas brasileiras; texto e imagem paginada com valores exatos; dados preservados.');
+
+const referralData=structuredClone(data);
+referralData.receipts.push({id:'referral',sale_id:'sale',installment_id:'p0',amount_cents:20000,method:'Programa de indicação'});
+let referred=paymentSchedule(referralData,sale,'2026-11-03');
+assert.equal(referred.referral,20000);assert.equal(referred.received,50000);assert.equal(referred.balance,1130000);assert.equal(referred.rows.find(r=>r.id==='p0').status,'partial');
+assert.ok(paymentScheduleText(referred,'ULTRA').includes('Programa de indicação: R$ 200,00'));
+referralData.receipts.push({id:'pix',sale_id:'sale',installment_id:'p0',amount_cents:30000,method:'PIX'});
+referred=paymentSchedule(referralData,sale,'2026-11-03');assert.equal(referred.rows.find(r=>r.id==='p0').status,'paid');assert.equal(referred.received,80000);assert.equal(referred.referral,20000);
+const referralFiles=await paymentScheduleImages(referred,'ULTRA');assert.equal(referralFiles.length,1);assert.ok(drawn.includes('Programa de indicação: R$ 200,00'));
+referralData.receipts.push({id:'reverse',sale_id:'sale',installment_id:'p0',amount_cents:-20000,method:'Estorno',reversal_of:'referral'});
+referred=paymentSchedule(referralData,sale,'2026-11-03');assert.equal(referred.referral,0);assert.equal(referred.received,80000);assert.equal(referred.rows.find(r=>r.id==='p0').status,'partial');
+console.log('PASS indicação no cronograma: crédito separado, pagamento misto, texto WhatsApp, imagem e estorno.');
+
+delete globalThis.document;
