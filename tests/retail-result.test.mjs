@@ -6,4 +6,5 @@ let r=retailResult(d,range);assert.equal(r.received,0);assert.equal(r.pending,14
 d.retail_payments[0].settled_date=day;r=retailResult(d,range);assert.equal(r.received,148500);assert.equal(r.pending,0);assert.equal(r.profit,31500);
 d.sale_items[0].cost_cents=null;assert.equal(retailResult(d,range).incomplete,true);
 assert.equal(retailResult({},range).profit,0);
+assert.equal(retailResult({sales:[],sale_items:[],receipts:[{id:'ref',amount_cents:2000,method:'Programa de indicação',created_at:day},{id:'reverse',reversal_of:'ref',amount_cents:-2000,method:'Estorno',created_at:day}]},range).received,0,'Referral credit and reversal never become cash');
 console.log('PASS resultado: competência e recebimento separados, taxa única, despesa vinculada sem duplicação, custo diário, custo ausente e período vazio.');

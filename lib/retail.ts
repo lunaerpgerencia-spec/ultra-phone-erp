@@ -4,10 +4,10 @@ const reportDay=(value:unknown)=>{const raw=String(value||'');if(/^\d{4}-\d{2}-\
 export function retailResult(data:DataSet,range:ReportRange,seller='',method=''){
  const inside=(v:unknown)=>{const d=reportDay(v);return d>=range.start&&d<=range.end};
  const sales=(data.sales||[]).filter(s=>s.status==='Ativa'&&inside(s.created_at)&&(!seller||s.seller_label===seller)&&(!method||s.payment_method===method||(data.retail_payments||[]).some(p=>p.sale_id===s.id&&p.method===method)));
- const ids=new Set(sales.map(s=>s.id)),allActive=new Set((data.sales||[]).filter(s=>s.status==='Ativa'&&(!seller||s.seller_label===seller)).map(s=>s.id));
+ const ids=new Set(sales.map(s=>s.id)),allActive=new Set((data.sales||[]).filter(s=>(!seller||s.seller_label===seller)).map(s=>s.id));
  const payments=(data.retail_payments||[]),pids=new Set(payments.map(p=>p.id)),receipts=data.receipts||[];
  const reversed=new Set(receipts.filter(r=>r.reversal_of).map(r=>r.reversal_of));
- const receivedLegacy=receipts.filter(r=>!pids.has(r.id)&&!pids.has(r.reversal_of)&&r.method!=='Programa de indicação'&&inside(r.created_at)&&(!seller||allActive.has(r.sale_id))&&(!method||r.method===method||receipts.find(o=>o.id===r.reversal_of)?.method===method)).reduce((n,r)=>n+Number(r.amount_cents),0);
+ const receivedLegacy=receipts.filter(r=>!pids.has(r.id)&&!pids.has(r.reversal_of)&&r.method!=='Programa de indicação'&&receipts.find(o=>o.id===r.reversal_of)?.method!=='Programa de indicação'&&inside(r.created_at)&&(!seller||allActive.has(r.sale_id))&&(!method||r.method===method||receipts.find(o=>o.id===r.reversal_of)?.method===method)).reduce((n,r)=>n+Number(r.amount_cents),0);
  const receivedRetail=payments.filter(p=>p.settled_date&&inside(p.settled_date)&&(!seller||allActive.has(p.sale_id))&&(!method||p.method===method)).reduce((n,p)=>n+Number(p.net_cents),0)-receipts.filter(r=>pids.has(r.reversal_of)&&inside(r.created_at)&&(!seller||allActive.has(r.sale_id))).reduce((n,r)=>n+(payments.find(p=>p.id===r.reversal_of)?.settled_date?Number(payments.find(p=>p.id===r.reversal_of)?.net_cents):0),0);
  const expenses=(data.work_expenses||[]).filter(e=>!e.deleted&&inside(e.expense_date)&&(!seller||e.responsible===seller||ids.has(e.sale_id))&&(!method||e.method===method));
  const sum=(rows:Row[],key:string)=>rows.reduce((n,r)=>n+Number(r[key]||0),0);
