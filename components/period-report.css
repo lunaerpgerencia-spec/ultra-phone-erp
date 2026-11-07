@@ -15,3 +15,6 @@
 .period-report-money{white-space:nowrap;overflow-wrap:normal!important}
 @media print{body>.period-report-print{page:period-report}}
 @page period-report{size:A4;margin:15mm;@bottom-right{content:"Página " counter(page) " de " counter(pages);font:8px Arial;color:#405a70}}
+
+.period-report-types{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border,#29415b)}
+@media(max-width:600px){.period-report-types>.btn{width:100%;justify-content:center}}
