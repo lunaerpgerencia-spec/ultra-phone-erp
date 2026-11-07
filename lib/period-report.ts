@@ -1,0 +1,34 @@
+import type {DataSet,Row} from './data';
+export type ReportRange={start:string;end:string};
+type ReportSale=Row&{day:string;customer:string;products:string;units:number;cost:number;balance:number};
+type ReportReceipt=Row&{day:string;customer:string;saleNumber:string|number;purpose:string;methodLabel:string;originalMethod:string;referral:boolean;amount:number};
+type ReportMovement=Row&{day:string;amount:number};
+type ReportPurchase=ReportMovement&{product:string};
+const dateFormatter=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'});
+export function reportDay(value:unknown){const raw=String(value||'');if(/^\d{4}-\d{2}-\d{2}$/.test(raw))return raw;const d=new Date(raw);return Number.isFinite(d.getTime())?dateFormatter.format(d):'';}
+function validDay(s:string){return /^\d{4}-\d{2}-\d{2}$/.test(s)&&Number.isFinite(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;}
+export function reportRangeError(range:ReportRange){if(!validDay(range.start)||!validDay(range.end))return 'Informe as duas datas válidas.';if(range.start>range.end)return 'A data inicial deve ser anterior ou igual à final.';if(Date.parse(range.end)-Date.parse(range.start)>365*86400000)return 'Escolha um período de até 366 dias por relatório.';return '';}
+export function reportPreset(days:number,today:string):ReportRange{const start=new Date(today+'T12:00:00Z');start.setUTCDate(start.getUTCDate()-days+1);return {start:start.toISOString().slice(0,10),end:today};}
+export function buildPeriodReport(data:DataSet,storeId:string,range:ReportRange,today:string){
+ const error=reportRangeError(range);if(error)throw Error(error);
+ const own=(table:string)=>(data[table]||[]).filter(r=>r.store_id===storeId);
+ const inRange=(r:Row)=>{const day=reportDay(r.created_at);return day>=range.start&&day<=range.end;};
+ const allSales=own('sales'),allReceipts=own('receipts'),items=own('sale_items'),customers=new Map(own('customers').map(c=>[c.id,c])),salesById=new Map(allSales.map(s=>[s.id,s])),receiptsById=new Map(allReceipts.map(r=>[r.id,r])),parcels=own('installments'),parcelsById=new Map(parcels.map(p=>[p.id,p])),devices=new Map(own('devices').map(d=>[d.id,d]));
+ const sumsBySale=new Map<string,number>(),sumsByParcel=new Map<string,number>(),itemsBySale=new Map<string,Row[]>();
+ for(const r of allReceipts){sumsBySale.set(r.sale_id,(sumsBySale.get(r.sale_id)||0)+Number(r.amount_cents));if(r.installment_id)sumsByParcel.set(r.installment_id,(sumsByParcel.get(r.installment_id)||0)+Number(r.amount_cents));}
+ for(const i of items)itemsBySale.set(i.sale_id,[...(itemsBySale.get(i.sale_id)||[]),i]);
+ const customerName=(sale?:Row)=>String((sale&&customers.get(sale.customer_id)?.name)||sale?.customer_snapshot?.name||'Cliente não identificado');
+ const sales=allSales.filter(inRange).map<ReportSale>(s=>{const soldItems=itemsBySale.get(s.id)||[];return {...s,day:reportDay(s.created_at),customer:customerName(s),products:soldItems.map(i=>String(i.label)).join(' + ')||'Sem item registrado',units:soldItems.length,cost:soldItems.reduce((n,i)=>n+Number(i.cost_cents),0),balance:s.status==='Ativa'?Math.max(0,Number(s.total_cents)-(sumsBySale.get(s.id)||0)-Number(s.trade_value_cents||0)):0};}).sort((a,b)=>a.created_at.localeCompare(b.created_at));
+ const active=sales.filter(s=>s.status==='Ativa'),saleIds=new Set(active.map(s=>s.id));
+ const receipts=allReceipts.filter(inRange).map<ReportReceipt>(r=>{const s=salesById.get(r.sale_id),original=r.reversal_of?receiptsById.get(r.reversal_of):r;const method=String(original?.method||'Origem não localizada');return {...r,day:reportDay(r.created_at),customer:customerName(s),saleNumber:s?.number||'—',purpose:r.installment_id?'Parcela '+(parcelsById.get(r.installment_id)?.number||'—'):'Entrada / pagamento integral',methodLabel:r.reversal_of?'Estorno · '+method:method,originalMethod:method,referral:method==='Programa de indicação',amount:Number(r.amount_cents)};}).sort((a,b)=>a.created_at.localeCompare(b.created_at));
+ const ledger=own('ledger').filter(inRange).map<ReportMovement>(l=>({...l,day:reportDay(l.created_at),amount:Number(l.amount_cents)})).sort((a,b)=>a.created_at.localeCompare(b.created_at));
+ const purchases=own('purchases').filter(inRange).map<ReportPurchase>(p=>{const d=devices.get(p.device_id);return {...p,day:reportDay(p.created_at),product:d?[d.brand,d.model,d.storage,d.color].filter(Boolean).join(' '):'Produto não disponível',amount:Number(p.amount_cents)};}).sort((a,b)=>a.created_at.localeCompare(b.created_at));
+ const paymentMethods=new Map<string,{method:string;gross:number;reversed:number;net:number}>();
+ for(const method of ['PIX','Dinheiro','Débito','Crédito','Transferência','Programa de indicação'])paymentMethods.set(method,{method,gross:0,reversed:0,net:0});
+ for(const r of receipts){const m=paymentMethods.get(r.originalMethod)||{method:r.originalMethod,gross:0,reversed:0,net:0};m.gross+=Math.max(0,r.amount);m.reversed+=Math.max(0,-r.amount);m.net+=r.amount;paymentMethods.set(m.method,m);}
+ const monetary=receipts.filter(r=>!r.referral),sum=(rows:Row[],field:string)=>rows.reduce((n,r)=>n+Number(r[field]||0),0);
+ const totals={sales:sum(active,'total_cents'),count:active.length,units:sum(active,'units'),canceled:sales.length-active.length,cost:sum(active,'cost'),margin:sum(active,'total_cents')-sum(active,'cost'),gross:monetary.reduce((n,r)=>n+Math.max(0,r.amount),0),reversed:monetary.reduce((n,r)=>n+Math.max(0,-r.amount),0),received:sum(monetary,'amount'),referral:sum(receipts.filter(r=>r.referral),'amount'),trade:sum(active,'trade_value_cents'),purchases:sum(purchases,'amount'),outflows:ledger.reduce((n,l)=>n+Math.max(0,-l.amount),0),inflows:ledger.reduce((n,l)=>n+Math.max(0,l.amount),0),otherInflows:ledger.filter(l=>!l.receipt_id).reduce((n,l)=>n+Math.max(0,l.amount),0),netMovement:sum(ledger,'amount'),balance:sum(active,'balance'),overdue:parcels.filter(p=>!p.canceled&&saleIds.has(p.sale_id)&&p.due_date<today).reduce((n,p)=>n+Math.max(0,Number(p.amount_cents)-(sumsByParcel.get(p.id)||0)),0)};
+ const daily=[];for(let day=range.start;day<=range.end;){daily.push({day,sales:sum(active.filter(s=>s.day===day),'total_cents'),count:active.filter(s=>s.day===day).length,received:sum(monetary.filter(r=>r.day===day),'amount'),referral:sum(receipts.filter(r=>r.referral&&r.day===day),'amount'),outflows:ledger.filter(l=>l.day===day).reduce((n,l)=>n+Math.max(0,-l.amount),0),netMovement:sum(ledger.filter(l=>l.day===day),'amount')});const next=new Date(day+'T12:00:00Z');next.setUTCDate(next.getUTCDate()+1);day=next.toISOString().slice(0,10);}
+ return {range:{...range},totals,sales,receipts,purchases,ledger,daily,methods:[...paymentMethods.values()]};
+}
+export type PeriodReport=ReturnType<typeof buildPeriodReport>;
