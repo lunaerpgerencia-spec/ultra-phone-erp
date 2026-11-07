@@ -1,0 +1,8 @@
+'use client';
+import {useState,type FormEvent} from 'react';
+import {getClient,type Row} from '@/lib/data';
+export function CompanyDetails({store,editable,onSaved}:{store?:Row;editable:boolean;onSaved:()=>Promise<void>}){
+ const [form,setForm]=useState<Row|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+ async function save(e:FormEvent){e.preventDefault();if(!form||!store)return;setBusy(true);setError('');try{const c=await getClient();const r=await c!.from('stores').update(form).eq('id',store.id).select('id').single();if(r.error)throw r.error;await onSaved();setForm(null)}catch(e){setError((e as Error).message)}finally{setBusy(false)}}
+ return <section className="panel retail-expenses"><h2>Dados da empresa nos documentos</h2><p>{store?.name} · CNPJ {store?.company_document||'não cadastrado'} · {store?.phone||'telefone não cadastrado'}</p>{error&&<p className="error">{error}</p>}{editable&&!form&&<button className="btn secondary" onClick={()=>setForm({name:store?.name||'',company_document:store?.company_document||'',address:store?.address||'',phone:store?.phone||''})}>Editar dados da empresa</button>}{form&&<form onSubmit={save}><div className="form-grid">{[['name','Nome da loja'],['company_document','CNPJ'],['address','Endereço'],['phone','Telefone']].map(([k,l])=><label className="field" key={k}><span>{l}</span><input required value={form[k]} onChange={e=>setForm({...form,[k]:e.target.value})}/></label>)}</div><button className="btn primary" disabled={busy}>Salvar</button><button type="button" className="btn secondary" onClick={()=>setForm(null)}>Voltar</button></form>}</section>;
+}
