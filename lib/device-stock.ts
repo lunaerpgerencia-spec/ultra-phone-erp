@@ -4,6 +4,12 @@ export const stockSections=['iPhone','Samsung','Motorola','Xiaomi','HOTWAV','Tab
 const clean=(v:unknown)=>String(v||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ');
 const key=(v:unknown)=>clean(v).toLowerCase().replace(/[^a-z0-9]/g,'');
 export const nonImeiSection=(value:unknown)=>nonImeiSections.find(s=>key(s)===key(value));
+/** Stable per-unit IDs for an atomic, retry-safe purchase of identical non-IMEI products. */
+export function quantityBatch(request:string,quantity:number){
+ if(!Number.isInteger(quantity)||quantity<1||quantity>50)throw Error('Informe uma quantidade inteira entre 1 e 50.');
+ if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(request))throw Error('Solicitação inválida.');
+ return Array.from({length:quantity},(_,i)=>({request:request.slice(0,-4)+(parseInt(request.slice(-4),16)^i).toString(16).padStart(4,'0'),device:i===0?{}:{imei:null,imei2:'',serial:''}}));
+}
 export function deviceSection(d:Row){
  const explicit=String(d.specs?.stock_section||'').trim();
  if(explicit==='Produtos sem IMEI'&&d.specs?.retail_category==='Artigos infantis')return 'Artigos infantis';
