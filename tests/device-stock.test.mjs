@@ -5,4 +5,8 @@ const snapshot=JSON.stringify([a,b,c,pro,other]);const groups=groupDeviceStock([
 assert.equal(groups.length,3);assert.equal(groups[0].section,'iPhone');assert.equal(groups.find(g=>g.units.some(d=>d.id==='a')).units.length,3);assert.equal(groups.flatMap(g=>g.units).length,5);assert.equal(new Set(groups.flatMap(g=>g.units.map(d=>d.id))).size,5);
 assert.equal(deviceSection(other),'HOTWAV');assert.equal(deviceSection({...a,brand:'Samsung',model:'Galaxy A15'}),'Samsung');assert.equal(deviceSection({...a,model:'Tablet Pad17 Ultra Max'}),'Tablets');assert.equal(deviceSection({...a,specs:{stock_section:'Ofertas'}}),'Ofertas');
 assert.deepEqual(groupDeviceStock([a,b,c],b.imei).flatMap(g=>g.units.map(d=>d.id)),['b']);assert.equal(groupDeviceStock([a,b,c],'6 GB').flatMap(g=>g.units).length,3);assert.equal(groupDeviceStock([a,b,c],'Azul')[0].units[0].id,'b');assert.equal(groupDeviceStock([a,b,c],'Inexistente').length,0);assert.equal(JSON.stringify([a,b,c,pro,other]),snapshot);
+const child={id:'child',model:'Brinquedo',product_type:'Produtos sem IMEI',specs:{stock_section:'Produtos sem IMEI',retail_category:'Artigos infantis'}};
+assert.equal(deviceSection(child),'Artigos infantis');
+assert.equal(groupDeviceStock([child])[0].section,'Artigos infantis');
+assert.equal(deviceSection({...child,specs:{stock_section:'Produtos sem IMEI'}}),'Produtos sem IMEI');
 console.log('PASS estoque: seções automáticas ou escolhidas, mesmo modelo com variações, Pro e Pro Max separados, todos os IMEIs preservados, busca por unidade e dados originais intactos.');
