@@ -28,7 +28,7 @@ import type {CustomerProduct} from '@/lib/device-stock';
 import {DeviceStock} from '@/components/device-stock';
 import {DevicePhoto} from '@/components/device-photo';
 import {DeviceVariants} from '@/components/device-variants';
-import {deviceSection,stockSections,nonImeiSection} from '@/lib/device-stock';
+import {deviceSection,stockSections,nonImeiSection,promotionPrice} from '@/lib/device-stock';
 import {CashModule,ServiceModule} from '@/components/operations';
 import {getClient,emptyData,loadData,rpc,type Row,type DataSet} from '@/lib/data';
 import {money,cents,validIMEI,validCPF,isoToday,dateLabel,splitInstallments,monthDate,installmentDate} from '@/lib/domain';
