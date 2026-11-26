@@ -1,11 +1,12 @@
 import type {Row} from './data';
-export const nonImeiSections=['Relógios','Acessórios','Moto elétrica','Produtos sem IMEI'];
+export const nonImeiSections=['Relógios','Acessórios','Moto elétrica','Artigos infantis','Produtos sem IMEI'];
 export const stockSections=['iPhone','Samsung','Motorola','Xiaomi','HOTWAV','Tablets',...nonImeiSections,'Outros'];
 const clean=(v:unknown)=>String(v||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ');
 const key=(v:unknown)=>clean(v).toLowerCase().replace(/[^a-z0-9]/g,'');
 export const nonImeiSection=(value:unknown)=>nonImeiSections.find(s=>key(s)===key(value));
 export function deviceSection(d:Row){
  const explicit=String(d.specs?.stock_section||'').trim();
+ if(explicit==='Produtos sem IMEI'&&d.specs?.retail_category==='Artigos infantis')return 'Artigos infantis';
  if(explicit){return stockSections.find(s=>key(s)===key(explicit))||explicit;}
  if(nonImeiSection(d.product_type))return nonImeiSection(d.product_type)!;
  const model=clean(d.model).toLowerCase(),brand=clean(d.brand).toLowerCase();
