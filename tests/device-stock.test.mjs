@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {groupDeviceStock,deviceSection} from '../lib/device-stock.ts';
+import {groupDeviceStock,deviceSection,quantityBatch} from '../lib/device-stock.ts';
 const a={id:'a',brand:'Apple',model:'IPHONE 14 PRO MAX',imei:'490154203237518',storage:'128 GB',color:'Preto',status:'Disponível',price_cents:200000,specs:{ram:'6 GB'}},b={...a,id:'b',model:'iPhone 14 Pro Max',imei:'356938035643809',storage:'256 GB',color:'Azul',status:'Vendido'},c={...a,id:'c',model:'14 Pro Max',imei:'352099001761481',storage:'256 GB',color:'Branco'},pro={...a,id:'pro',model:'iPhone 14 Pro'},other={...a,id:'hotwav',model:'HOTWAV A18',brand:'Apple'};
 const snapshot=JSON.stringify([a,b,c,pro,other]);const groups=groupDeviceStock([a,b,c,pro,other]);
 assert.equal(groups.length,3);assert.equal(groups[0].section,'iPhone');assert.equal(groups.find(g=>g.units.some(d=>d.id==='a')).units.length,3);assert.equal(groups.flatMap(g=>g.units).length,5);assert.equal(new Set(groups.flatMap(g=>g.units.map(d=>d.id))).size,5);
@@ -9,4 +9,5 @@ const child={id:'child',model:'Brinquedo',product_type:'Produtos sem IMEI',specs
 assert.equal(deviceSection(child),'Artigos infantis');
 assert.equal(groupDeviceStock([child])[0].section,'Artigos infantis');
 assert.equal(deviceSection({...child,specs:{stock_section:'Produtos sem IMEI'}}),'Produtos sem IMEI');
+const request='12345678-1234-4234-9234-123456789abc';const batch=quantityBatch(request,12);assert.equal(batch.length,12);assert.equal(batch[0].request,request);assert.equal(new Set(batch.map(u=>u.request)).size,12);assert.deepEqual(quantityBatch(request,12),batch);assert.throws(()=>quantityBatch(request,0));assert.throws(()=>quantityBatch(request,51));assert.throws(()=>quantityBatch(request,2.5));
 console.log('PASS estoque: seções automáticas ou escolhidas, mesmo modelo com variações, Pro e Pro Max separados, todos os IMEIs preservados, busca por unidade e dados originais intactos.');
