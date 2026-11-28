@@ -45,6 +45,7 @@ function Empty({title,detail,action,onAction}:{title:string,detail:string,action
 function Badge({children,tone='blue'}:{children:React.ReactNode,tone?:string}){return <span className={'badge '+tone}>{children}</span>}
 export default function Home(){
  const [page,setPage]=useState('dashboard'),[mobile,setMobile]=useState(false),[light,setLight]=useState(false),[query,setQuery]=useState(''),[data,setData]=useState<DataSet>(emptyData),[stores,setStores]=useState<Row[]>([]),[storeId,setStoreId]=useState(''),[email,setEmail]=useState(''),[role,setRole]=useState(''),[configured,setConfigured]=useState(false),[loading,setLoading]=useState(true),[error,setError]=useState(''),[toast,setToast]=useState(''),[modal,setModal]=useState(''),[form,setForm]=useState<Row>({}),[selected,setSelected]=useState<Row|null>(null),[busy,setBusy]=useState(false),[imei,setIMEI]=useState(''),[lookup,setLookup]=useState(false),[period,setPeriod]=useState('month'),[printSale,setPrintSale]=useState<Row|null>(null),[printPromissory,setPrintPromissory]=useState<Row|null>(null),[printContract,setPrintContract]=useState<Row|null>(null),[requestId,setRequestId]=useState('');
+ useEffect(()=>{if(new URLSearchParams(window.location.search).get('pdv')==='1')setPage('sales')},[]);
  const [posVersion,setPosVersion]=useState(0);
  const [retailPrint,setRetailPrint]=useState<{sale:Row;warranty:boolean}|null>(null);
  const [commercialDoc,setCommercialDoc]=useState<CommercialPrintData|null>(null),[commercialBusy,setCommercialBusy]=useState(false);
